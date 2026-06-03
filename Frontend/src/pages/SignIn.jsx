@@ -1,61 +1,56 @@
-import React,{useState} from "react";
-import Container from "@mui/material/Container";
-import Card from "@mui/material/Card";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import FormControl from "@mui/material/FormControl";
-import axios from "axios";
-import Snackbar from "@mui/material/Snackbar";
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import Container from '@mui/material/Container';
+import Card from '@mui/material/Card';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import FormControl from '@mui/material/FormControl';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import { useAuth } from '../auth/AuthProvider.jsx';
 
 const SignIn = () => {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [severity, setSeverity] = useState('success');
+  const { register } = useAuth();
+  const navigate = useNavigate();
 
-const [username, setUsername] = useState("");
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-const [open , setOpen] = useState(false);
-const [error, setError] = useState("");
-
-async function handleSubmit(e) {
-  e.preventDefault();
+  async function handleSubmit(e) {
+    e.preventDefault();
     try {
-
-
-        const response = await axios.post("http://localhost:5000/api/auth/register", {
-            username,
-            email,
-            password
-        });
-        console.log(response.data);
-
-        setOpen(true);
-        setError(response?.data?.message || "Sign in successful!");
-        setUsername("");
-        setEmail("");
-        setPassword("");
-
-        
+      const response = await register({ username, email, password });
+      setOpen(true);
+      setSeverity('success');
+      setMessage(response.message || 'Registration successful!');
+      navigate('/dashboard');
     } catch (error) {
-        setOpen(true);
-        setError(error.response?.data?.message || "An error occurred during sign in.");
+      setOpen(true);
+      setSeverity('error');
+      setMessage(error.response?.data?.message || 'An error occurred during sign in.');
     }
-}
+  }
+
   return (
     <Container
       maxWidth="sm"
       sx={{
         mt: 8,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
       }}
     >
       <Card
         sx={{
           p: 4,
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}
       >
         <Typography component="h1" variant="h4">
@@ -64,13 +59,7 @@ async function handleSubmit(e) {
         <Box
           component="form"
           onSubmit={handleSubmit}
-          sx={{
-            mt: 3,
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
+          sx={{ mt: 3, width: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}
           noValidate
           autoComplete="off"
         >
@@ -83,12 +72,7 @@ async function handleSubmit(e) {
               placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              style={{
-                padding: "10px",
-                fontSize: "16px",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-              }}
+              style={{ padding: '10px', fontSize: '16px', borderRadius: '4px', border: '1px solid #ccc' }}
               required
             />
           </FormControl>
@@ -101,12 +85,7 @@ async function handleSubmit(e) {
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{
-                padding: "10px",
-                fontSize: "16px",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-              }}
+              style={{ padding: '10px', fontSize: '16px', borderRadius: '4px', border: '1px solid #ccc' }}
               required
             />
           </FormControl>
@@ -119,12 +98,7 @@ async function handleSubmit(e) {
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{
-                padding: "10px",
-                fontSize: "16px",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-              }}
+              style={{ padding: '10px', fontSize: '16px', borderRadius: '4px', border: '1px solid #ccc' }}
               minLength={6}
               required
             />
@@ -132,26 +106,29 @@ async function handleSubmit(e) {
           <button
             type="submit"
             style={{
-              padding: "10px 20px",
-              fontSize: "16px",
-              borderRadius: "4px",
-              border: "none",
-              backgroundColor: "#1976d2",
-              color: "#fff",
-              cursor: "pointer",
+              padding: '10px 20px',
+              fontSize: '16px',
+              borderRadius: '4px',
+              border: 'none',
+              backgroundColor: '#1976d2',
+              color: '#fff',
+              cursor: 'pointer',
             }}
           >
             Sign In
           </button>
         </Box>
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2">
+            Already have an account? <Link to="/login">Login</Link>
+          </Typography>
+        </Box>
       </Card>
-      <Snackbar
-      anchorOrigin={{vertical: "top", horizontal: "center"}}
-        open={open}
-        autoHideDuration={2000}
-        message={error}
-        
-      />
+      <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)}>
+        <Alert severity={severity} variant="filled" sx={{ width: '100%' }}>
+          {message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

@@ -31,3 +31,42 @@ export const getDashboardData = async (req,res)=>{
         });
     }
 }
+export const getTechnicianData = async (req,res)=>{
+
+    try {
+        
+        const totalTechnicians = await User.find({ role: 'technician' });
+
+        res.status(200).json({
+            success: true,
+            message: 'Technician data fetched successfully',
+            totalTechnicians
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching technician data',
+            error: error.message
+        });
+    }
+}
+export const getTechnicianName = async (req,res)=>{
+
+    try {
+        const { id } = req.params;
+        console.log(id);
+        const TechnicianData = await User.findById(id);
+
+        res.status(200).json({
+            success: true,
+            message: 'Technician data fetched successfully',
+            TechnicianData
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching technician data',
+            error: error.message
+        });
+    }
+}
