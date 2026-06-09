@@ -13,7 +13,6 @@ export const authMiddleware = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(decoded);
         req.user = decoded;
         next(); 
     } catch (error) {
@@ -32,7 +31,6 @@ export const requireAdmin = (req, res, next) => {
             message: 'No token provided' });
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(decoded);
         req.user = decoded;
     if (req.user && req.user.role === 'admin') {
         next();
@@ -54,7 +52,6 @@ export const requireAdminTechnician = (req, res, next) => {
             message: 'No token provided' });
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(decoded);
         req.user = decoded;
     if (req.user && req.user.role === 'admin') {
         next();
@@ -79,7 +76,6 @@ export const requireTechnician = (req, res, next) => {
             message: 'No token provided' });
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(decoded);
         req.user = decoded;
     if (req.user && req.user.role === 'technician') {
         next();

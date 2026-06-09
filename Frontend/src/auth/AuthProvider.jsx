@@ -8,7 +8,13 @@ export const AuthProvider = ({ children }) => {
     const saved = localStorage.getItem('ticketUser');
     return saved ? JSON.parse(saved) : null;
   });
-  const [token, setToken] = useState(() => localStorage.getItem('ticketToken') || '');
+
+  const initialToken = localStorage.getItem('ticketToken') || '';
+  const [token, setToken] = useState(initialToken);
+
+  if (initialToken) {
+    axiosClient.defaults.headers.common.Authorization = `Bearer ${initialToken}`;
+  }
 
   useEffect(() => {
     if (token) {
@@ -18,9 +24,18 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
+  const setAuthorizationHeader = (authToken) => {
+    if (authToken) {
+      axiosClient.defaults.headers.common.Authorization = `Bearer ${authToken}`;
+    } else {
+      delete axiosClient.defaults.headers.common.Authorization;
+    }
+  };
+
   const saveAuth = (userData, newToken) => {
     setUser(userData);
     setToken(newToken);
+    setAuthorizationHeader(newToken);
     localStorage.setItem('ticketUser', JSON.stringify(userData));
     localStorage.setItem('ticketToken', newToken);
   };

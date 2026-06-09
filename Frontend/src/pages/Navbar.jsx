@@ -42,15 +42,18 @@ function Navbar() {
   const adminPages = [
     { label: 'Dashboard', to: '/dashboard' },
     { label: 'Tickets', to: '/tickets' },
+    { label: 'Profile', to: '/profile' },
   ];
 
   const userPages = [
     { label: 'Tickets', to: '/tickets' },
+    { label: 'Profile', to: '/profile' },
   ];
 
   const technicianPages = [
     { label: 'Tickets', to: '/tickets' },
     { label: 'My Tickets', to: '/technician-tickets' },
+    { label: 'Profile', to: '/profile' },
 
   ];
 

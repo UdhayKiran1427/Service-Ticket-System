@@ -33,7 +33,6 @@ const Dashboard = () => {
         if (isAdmin) {
           const response = await axiosClient.get('/dashboard/stats');
           const res = await axiosClient.get('/tickets/all-tickets');
-          console.log(res.data);
           setTickets(res.data.tickets);
           setStats(response.data);
           setError('');
@@ -47,7 +46,6 @@ const Dashboard = () => {
 
     fetchData();
   }, [isAdmin]);
-  console.log(stats);
   const statCards = [
     { label: 'Total Tickets', value: stats?.totalTickets ?? 0, color: 'primary' },
     { label: 'Open Tickets', value: stats?.openTickets ?? 0, color: 'warning' },
@@ -60,8 +58,8 @@ const Dashboard = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper elevation={4} sx={{ p: 4, mb: 4, borderRadius: 4, backgroundColor: '#f7f9fc' }}>
-        <Grid container spacing={4} alignItems="center">
-          <Grid item xs={12} md={8}>
+        <Grid container spacing={4} sx={{display: 'flex', alignItems: 'center'}}>
+          <Grid xs={12} md={8}>
             <Typography variant="h4" fontWeight={700} gutterBottom>
               {isAdmin ? 'Admin Dashboard' : `Welcome back, ${user?.username}`}
             </Typography>
@@ -77,7 +75,7 @@ const Dashboard = () => {
 
       <Grid container spacing={3}>
         {statCards.map((card) => (
-          <Grid item xs={12} sm={6} md={4} key={card.label}>
+          <Grid xs={12} sm={6} md={4} key={card.label}>
             <Paper
               elevation={3}
               sx={{

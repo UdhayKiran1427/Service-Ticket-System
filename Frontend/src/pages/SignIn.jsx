@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Card from '@mui/material/Card';
@@ -16,8 +16,20 @@ const SignIn = () => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [severity, setSeverity] = useState('success');
-  const { register } = useAuth();
+  const { register, isAuthed, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthed) {
+      if (user?.role === 'admin') {
+        navigate('/dashboard', { replace: true });
+      } else if (user?.role === 'technician') {
+        navigate('/technician-tickets', { replace: true });
+      } else {
+        navigate('/tickets', { replace: true });
+      }
+    }
+  }, [isAuthed, user, navigate]);
 
   async function handleSubmit(e) {
     e.preventDefault();
