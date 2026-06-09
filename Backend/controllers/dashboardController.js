@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 import Ticket from "../models/Tickets.js";
-
+import mongoose from "mongoose";
 export const getDashboardData = async (req,res)=>{
 
     try {
@@ -10,8 +10,7 @@ export const getDashboardData = async (req,res)=>{
         const assignedTickets = await Ticket.countDocuments({ assignedTo: req.user._id });
         const resolvedTickets = await Ticket.countDocuments({ status: 'Resolved' });
         const closedTickets = await Ticket.countDocuments({ status: 'Closed' });
-        const totalTechnicians = await User.countDocuments({ role: 'Technician' });
-
+        const totalTechnicians = await User.countDocuments({ role: 'technician' });
         res.status(200).json({
             success: true,
             message: 'Dashboard data fetched successfully',
@@ -54,7 +53,6 @@ export const getTechnicianName = async (req,res)=>{
 
     try {
         const { id } = req.params;
-        console.log(id);
         const TechnicianData = await User.findById(id);
 
         res.status(200).json({

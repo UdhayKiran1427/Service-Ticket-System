@@ -1,10 +1,10 @@
-import { createTicket, getTickets, 
+import { createTicket, getTickets, getOpenUnassignedTickets,
         getTicketsByCreator,
          updateTicket, assignTicket,
-         updateStatus,deleteTicket } from "../controllers/ticketController.js";
+         updateStatus,deleteTicket, getTicketsByAssignedTo } from "../controllers/ticketController.js";
 import { body } from "express-validator";
 import express from "express";
-import { authMiddleware, requireAdmin,requireTechnician  } from "../middlewares/authMiddleware.js";
+import { authMiddleware, requireAdmin,requireTechnician, requireAdminTechnician  } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -32,8 +32,10 @@ router.put('/status/:id', requireTechnician, [
 ], updateStatus);
 
 router.get('/my-tickets', authMiddleware, getTicketsByCreator);
+router.get('/technician-tickets', requireTechnician, getTicketsByAssignedTo);
 
-router.get('/all-tickets', requireAdmin, getTickets);
+router.get('/all-tickets', requireAdminTechnician, getTickets);
+router.get('/open-unassigned', requireTechnician, getOpenUnassignedTickets);
 
 router.delete('/delete/:id', requireAdmin, deleteTicket);
 export default router;

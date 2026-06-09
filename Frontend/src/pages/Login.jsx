@@ -22,10 +22,11 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await login({ email, password });
+      console.log(response);
       setOpen(true);
       setSeverity('success');
       setMessage(response.message || 'Login successful');
-      navigate('/dashboard');
+      response.role === 'admin' ? navigate('/dashboard') : navigate('/tickets');
     } catch (error) {
       setOpen(true);
       setSeverity('error');

@@ -18,30 +18,21 @@ import CardContent from "@mui/material/CardContent";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
 
-
-const TicketsPages = () => {
+const MyTickets = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
-  const [technicians, setTechnicians] = useState([]);
-  const [selectedTechnician, setSelectedTechnician] = useState({});
-  const [assignedNames, setAssignedNames] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState("");
+  const[assignedNames, setAssignedNames] = useState({});
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const isAdmin = user?.role === "admin";
-  const isTechnician = user?.role === "technician";
-  const isUser = user?.role === "user";
+  
 
   useEffect(() => {
     const fetchTickets = async () => {
       try {
         setLoading(true);
-        const endpoint = isAdmin
-          ? "/tickets/all-tickets"
-          : isTechnician
-          ? "/tickets/open-unassigned"
-          : "/tickets/my-tickets";
+        const endpoint = "/tickets/technician-tickets";
         const response = await axiosClient.get(endpoint);
         setTickets(response.data.tickets || []);
         setError("");
@@ -52,50 +43,20 @@ const TicketsPages = () => {
       }
     };
 
-    const fetchTechnicians = async () => {
-      if (!isAdmin) return;
-      try {
-        const response = await axiosClient.get("/dashboard/technicians");
-        setTechnicians(response.data.totalTechnicians || []);
-        setError("");
-      } catch (err) {
-        setError(err.response?.data?.message || "Unable to fetch technicians");
-      }
-    };
-
     fetchTickets();
-    fetchTechnicians();
-  }, [isAdmin, isTechnician]);
+  }, []);
 
   const refreshTickets = async () => {
     try {
-      const endpoint = isAdmin ? "/tickets/all-tickets" : "/tickets/my-tickets";
+      const endpoint =  "/tickets/technician-tickets";
       const response = await axiosClient.get(endpoint);
       setTickets(response.data.tickets || []);
+      setError("");
     } catch (err) {
       setError(err.response?.data?.message || "Unable to fetch tickets");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this ticket?")) return;
-    try {
-      await axiosClient.delete(`/tickets/delete/${id}`);
-      setTickets((t) => t.filter((tk) => tk._id !== id));
-    } catch (err) {
-      setError(err.response?.data?.message || "Unable to delete ticket");
-    }
-  };
-
-  const handleAssign = async (id, assignedTo) => {
-    if (!assignedTo) return;
-    try {
-      await axiosClient.put(`/tickets/assign/${id}`, { assignedTo });
-      await refreshTickets();
-    } catch (err) {
-      setError(err.response?.data?.message || "Unable to assign ticket");
-    }
-  };
 
   const handleAssignName = async (id) => {
     const response = await axiosClient.get(`/dashboard/technicianName/${id}`);
@@ -119,31 +80,18 @@ const TicketsPages = () => {
       await axiosClient.put(`/tickets/status/${id}`, { status: selectedStatus });
       await refreshTickets();
       setSelectedStatus("");
+      setError("");
     } catch (err) {
       setError(err.response?.data?.message || "Unable to update status");
     }
   };
 
-  const handleEdit = (ticket) => {
-    navigate("/create-ticket", {
-      state: {
-        ticket,
-        isEdit: true,
-      },
-    });
-  };
   return (
     <Container maxWidth="md" sx={{ mt: 6, mb: 6 }}>
-      {isTechnician ? "" :<Button
-            variant="contained"
-            onClick={() => navigate("/create-ticket")}
-            sx={{mb:3}}
-          >
-            Create Ticket
-          </Button>}
+
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" mb={2}>
-          {isAdmin || isTechnician ? "All Tickets" : "My Tickets"}
+          My Tickets
         </Typography>
         {loading && <Typography>Loading tickets…</Typography>}
         {error && <Typography color="error">{error}</Typography>}
@@ -215,16 +163,16 @@ const TicketsPages = () => {
             />
           )}
           <Box>
-            {isTechnician && !ticket.assignedTo && (
+            {ticket.assignedTo && (
             <Box sx={{ display: "flex", gap: 1 }}>
               <FormControl size="small" sx={{ minWidth: 220 }}>
                 <InputLabel>
-                  Status
+                    {ticket.status ? ticket.status : "Status"}
                 </InputLabel>
 
                 <Select
                   value={selectedStatus || ""}
-                  label="Status"
+                  label={ticket.status ? ticket.status : "Status"}
                   onChange={(e) =>
                     setSelectedStatus(e.target.value)
                   }
@@ -259,65 +207,7 @@ const TicketsPages = () => {
             gap: 2,
           }}
         >
-          {user?.role === "admin" && !ticket.assignedTo && (
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <FormControl size="small" sx={{ minWidth: 220 }}>
-                <InputLabel>
-                  Technician
-                </InputLabel>
-
-                <Select
-                  value={selectedTechnician[ticket._id] || ""}
-                  label="Technician"
-                  onChange={(e) =>
-                    setSelectedTechnician((prev) => ({
-                      ...prev,
-                      [ticket._id]: e.target.value,
-                    }))
-                  }
-                >
-                  <MenuItem value="">
-                    Select Technician
-                  </MenuItem>
-
-                  {technicians.map((tech) => (
-                    <MenuItem
-                      key={tech._id}
-                      value={tech._id}
-                    >
-                      {tech.username}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <Button
-                variant="contained"
-                disabled={!selectedTechnician[ticket._id]}
-                onClick={() =>
-                  handleAssign(
-                    ticket._id,
-                    selectedTechnician[ticket._id]
-                  )
-                }
-              >
-                Assign
-              </Button>
-            </Box>
-          )}
-
-          <Box sx={{ display: "flex", gap: 1 }}>
-            {user?.role === "admin" && (
-              <Button
-                color="error"
-                variant="contained"
-                onClick={() =>
-                  handleDelete(ticket._id)
-                }
-              >
-                Delete
-              </Button>
-            )}
+            <Box>
 
             {user?.role === "technician" && (
               <Button
@@ -331,14 +221,7 @@ const TicketsPages = () => {
               </Button>
             )}
 
-            {isUser && (
-              <Button
-                variant="outlined"
-                onClick={() => handleEdit(ticket)}
-              >
-                Edit
-              </Button>
-            )}
+            
           </Box>
         </Box>
       </CardContent>
@@ -350,4 +233,4 @@ const TicketsPages = () => {
   );
 };
 
-export default TicketsPages;
+export default MyTickets;

@@ -47,6 +47,23 @@ export const getTicketsByCreator = async (req, res) => {
         });
     }
 };
+export const getTicketsByAssignedTo = async (req, res) => {
+    try {
+        const tickets = await Ticket.find({
+            assignedTo: req.user._id
+        });
+        res.status(200).json({
+            success: true,
+            tickets
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching tickets',
+            error: error.message
+        });
+    }
+};
 
 export const getTickets = async (req, res) => {
     try {
@@ -54,6 +71,26 @@ export const getTickets = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Tickets fetched successfully',
+            tickets
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching tickets',
+            error: error.message
+        });
+    }
+};
+
+export const getOpenUnassignedTickets = async (req, res) => {
+    try {
+        const tickets = await Ticket.find({
+            status: 'Open',
+            $or: [{ assignedTo: null }, { assignedTo: { $exists: false } }]
+        });
+        res.status(200).json({
+            success: true,
+            message: 'Open unassigned tickets fetched successfully',
             tickets
         });
     } catch (error) {

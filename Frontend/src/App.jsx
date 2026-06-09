@@ -8,6 +8,7 @@ import NotFound from './pages/NotFound.jsx';
 import TicketsPages from './pages/TicketsPages.jsx';
 import { ProtectedRoutes } from './auth/ProtectedRoutes.jsx';
 import Navbar from "./pages/Navbar.jsx";
+import MyTickets from "./pages/MyTickets.jsx";
 
 function App() {
   return (
@@ -20,8 +21,16 @@ function App() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoutes>
+          <ProtectedRoutes allowedRoles={["admin"]}>
             <Dashboard />
+          </ProtectedRoutes>
+        }
+      />
+      <Route
+        path="/technician-tickets"
+        element={
+          <ProtectedRoutes allowedRoles={["technician"]}>
+            <MyTickets />
           </ProtectedRoutes>
         }
       />

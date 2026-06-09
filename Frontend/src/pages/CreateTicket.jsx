@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axiosClient from '../api/axiosClient.js';
 import Container from '@mui/material/Container';
 import Card from '@mui/material/Card';
@@ -14,34 +14,70 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
 const CreateTicket = () => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('Medium');
-  const [lab, setLab] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const ticket = location.state?.ticket;
+  const isEdit = Boolean(location.state?.isEdit && ticket);
+
+  const [title, setTitle] = useState(ticket?.title || '');
+  const [description, setDescription] = useState(ticket?.description || '');
+  const [priority, setPriority] = useState(ticket?.priority || 'Medium');
+  const [lab, setLab] = useState(ticket?.Lab || '');
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [severity, setSeverity] = useState('success');
-  const navigate = useNavigate();
+
+  const formTitle = isEdit ? 'Edit Ticket' : 'Create Ticket';
+  const actionText = isEdit ? 'Update Ticket' : 'Submit Ticket';
+
+  useEffect(() => {
+    if (isEdit) {
+      setTitle(ticket.title || '');
+      setDescription(ticket.description || '');
+      setPriority(ticket.priority || 'Medium');
+      setLab(ticket.Lab || '');
+    }
+  }, [isEdit, ticket]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      const response = await axiosClient.post('/tickets/create', {
-        title,
-        description,
-        priority,
-        lab,
-      });
-      setMessage(response.data.message || 'Ticket created successfully');
+      const response = isEdit
+        ? await axiosClient.put(`/tickets/update/${ticket._id}`, {
+            title,
+            description,
+            priority,
+            lab,
+            status: ticket.status || 'Open',
+          })
+        : await axiosClient.post('/tickets/create', {
+            title,
+            description,
+            priority,
+            lab,
+          });
+
+      setMessage(
+        response.data.message ||
+          (isEdit ? 'Ticket updated successfully' : 'Ticket created successfully'),
+      );
       setSeverity('success');
       setOpen(true);
-      setTitle('');
-      setDescription('');
-      setPriority('Medium');
-      setLab('');
-      setTimeout(() => navigate('/dashboard'), 1200);
+
+      if (!isEdit) {
+        setTitle('');
+        setDescription('');
+        setPriority('Medium');
+        setLab('');
+      }
+
+      setTimeout(() => navigate('/tickets'), 1200);
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Unable to create ticket');
+      setMessage(
+        error.response?.data?.message ||
+          (isEdit ? 'Unable to update ticket' : 'Unable to create ticket'),
+      );
       setSeverity('error');
       setOpen(true);
     }
@@ -49,23 +85,14 @@ const CreateTicket = () => {
 
   return (
     <Container maxWidth="sm" sx={{ mt: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-      <Button
-           
-            onClick={() => navigate("/tickets")}
-          >
-            
-          </Button>
-      <Button
-            variant="contained"
-            onClick={() => navigate("/tickets")}
-          >
-            Back
-          </Button>
-          </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button variant="contained" onClick={() => navigate('/tickets')}>
+          Back
+        </Button>
+      </Box>
       <Card sx={{ p: 3 }}>
         <Typography component="h1" variant="h4" mb={3}>
-          Create Ticket
+          {formTitle}
         </Typography>
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'grid', gap: 1 }}>
           <FormControl fullWidth>
@@ -102,7 +129,7 @@ const CreateTicket = () => {
             />
           </FormControl>
           <Button type="submit" variant="contained">
-            Submit Ticket
+            {actionText}
           </Button>
         </Box>
       </Card>
