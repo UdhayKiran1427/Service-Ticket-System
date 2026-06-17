@@ -33,19 +33,39 @@ export const getDashboardData = async (req,res)=>{
 export const getTechnicianData = async (req,res)=>{
 
     try {
-        
-        const totalTechnicians = await User.find({ role: 'technician' });
+        const technicians = await User.aggregate([
+            { $match: { role: 'technician' } },
+            {
+                $lookup: {
+                    from: 'tickets',
+                    localField: '_id',
+                    foreignField: 'assignedTo',
+                    as: 'assignedTickets',
+                },
+            },
+            {
+                $addFields: {
+                    assignedTicketCount: { $size: '$assignedTickets' },
+                },
+            },
+            {
+                $project: {
+                    username: 1,
+                    assignedTicketCount: 1,
+                },
+            },
+        ]);
 
         res.status(200).json({
             success: true,
             message: 'Technician data fetched successfully',
-            totalTechnicians
+            totalTechnicians: technicians,
         });
     } catch (error) {
         res.status(500).json({
             success: false,
             message: 'Error fetching technician data',
-            error: error.message
+            error: error.message,
         });
     }
 }

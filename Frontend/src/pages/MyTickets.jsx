@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import axiosClient from "../api/axiosClient.js";
 import { useNavigate } from "react-router-dom";
@@ -46,25 +46,25 @@ const MyTickets = () => {
     fetchTickets();
   }, []);
 
-  const refreshTickets = async () => {
+  const refreshTickets = useCallback(async () => {
     try {
-      const endpoint =  "/tickets/technician-tickets";
+      const endpoint = "/tickets/technician-tickets";
       const response = await axiosClient.get(endpoint);
       setTickets(response.data.tickets || []);
       setError("");
     } catch (err) {
       setError(err.response?.data?.message || "Unable to fetch tickets");
     }
-  };
+  }, []);
 
 
-  const handleAssignName = async (id) => {
+  const handleAssignName = useCallback(async (id) => {
     const response = await axiosClient.get(`/dashboard/technicianName/${id}`);
     setAssignedNames((prev) => ({
       ...prev,
       [id]: response.data.TechnicianData.username,
     }));
-  };
+  }, []);
 
   useEffect(() => {
     tickets.forEach((ticket) => {
@@ -74,20 +74,116 @@ const MyTickets = () => {
     });
   }, [tickets]);
 
-  const handleUpdateStatus = async (id) => {
-    if(!selectedStatus) return;
-    try {
-      await axiosClient.put(`/tickets/status/${id}`, { status: selectedStatus });
-      await refreshTickets();
-      setSelectedStatus("");
-      setError("");
-    } catch (err) {
-      setError(err.response?.data?.message || "Unable to update status");
-    }
-  };
+  const handleUpdateStatus = useCallback(
+    async (id) => {
+      if (!selectedStatus) return;
+      try {
+        await axiosClient.put(`/tickets/status/${id}`, { status: selectedStatus });
+        await refreshTickets();
+        setSelectedStatus("");
+        setError("");
+      } catch (err) {
+        setError(err.response?.data?.message || "Unable to update status");
+      }
+    },
+    [refreshTickets, selectedStatus],
+  );
+
+  const ticketList = useMemo(
+    () =>
+      tickets.map((ticket) => (
+        <Card
+          key={ticket._id}
+          sx={{
+            mb: 3,
+            borderRadius: 3,
+            boxShadow: 3,
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: 8,
+              transform: "translateY(-4px)",
+            },
+          }}
+        >
+          <CardContent>
+            <Typography variant="h6" fontWeight="bold">
+              {ticket.title}
+            </Typography>
+
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+              {ticket.description}
+            </Typography>
+
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+              <Chip
+                label={`Priority: ${ticket.priority}`}
+                color={
+                  ticket.priority === "High"
+                    ? "error"
+                    : ticket.priority === "Medium"
+                    ? "warning"
+                    : "success"
+                }
+              />
+
+              <Chip label={`Status: ${ticket.status}`} color="primary" />
+
+              <Chip label={`Lab: ${ticket.Lab}`} variant="outlined" />
+
+              {ticket.assignedTo && (
+                <Chip
+                  label={`👨‍🔧 ${assignedNames[ticket.assignedTo] || "Unknown"}`}
+                  color="secondary"
+                />
+              )}
+              <Box>
+                {ticket.assignedTo && (
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <FormControl size="small" sx={{ minWidth: 220 }}>
+                      <InputLabel>{ticket.status ? ticket.status : "Status"}</InputLabel>
+                      <Select
+                        value={selectedStatus || ""}
+                        label={ticket.status ? ticket.status : "Status"}
+                        onChange={(e) => setSelectedStatus(e.target.value)}
+                      >
+                        <MenuItem value="Open">Open</MenuItem>
+                        <MenuItem value="In Progress">In Progress</MenuItem>
+                        <MenuItem value="Resolved">Resolved</MenuItem>
+                        <MenuItem value="Closed">Closed</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                )}
+              </Box>
+            </Stack>
+
+            <Divider sx={{ mb: 2 }} />
+
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 2,
+              }}
+            >
+              <Box>
+                {user?.role === "technician" && (
+                  <Button variant="contained" onClick={() => handleUpdateStatus(ticket._id)}>
+                    Update Status
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )),
+    [tickets, assignedNames, selectedStatus, user?.role, handleUpdateStatus],
+  );
 
   return (
-    <Container maxWidth="md" sx={{ mt: 6, mb: 6 }}>
+    <Container maxWidth="lg" sx={{ mt: 6, mb: 6 }}>
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" mb={2}>
@@ -98,136 +194,7 @@ const MyTickets = () => {
         {!loading && !tickets.length && (
           <Typography>No tickets found.</Typography>
         )}
-        <List>
-  {tickets.map((ticket) => (
-    <Card
-      key={ticket._id}
-      sx={{
-        mb: 3,
-        borderRadius: 3,
-        boxShadow: 3,
-        transition: "all 0.3s ease",
-        "&:hover": {
-          boxShadow: 8,
-          transform: "translateY(-4px)",
-        },
-      }}
-    >
-      <CardContent>
-        <Typography variant="h6" fontWeight="bold">
-          {ticket.title}
-        </Typography>
-
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mt: 1, mb: 2 }}
-        >
-          {ticket.description}
-        </Typography>
-
-        <Stack
-          direction="row"
-          spacing={1}
-          flexWrap="wrap"
-          useFlexGap
-          sx={{ mb: 2 }}
-        >
-          <Chip
-            label={`Priority: ${ticket.priority}`}
-            color={
-              ticket.priority === "High"
-                ? "error"
-                : ticket.priority === "Medium"
-                ? "warning"
-                : "success"
-            }
-          />
-
-          <Chip
-            label={`Status: ${ticket.status}`}
-            color="primary"
-          />
-
-          <Chip
-            label={`Lab: ${ticket.Lab}`}
-            variant="outlined"
-          />
-
-          {ticket.assignedTo && (
-            <Chip
-              label={`👨‍🔧 ${
-                assignedNames[ticket.assignedTo] || "Unknown"
-              }`}
-              color="secondary"
-            />
-          )}
-          <Box>
-            {ticket.assignedTo && (
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <FormControl size="small" sx={{ minWidth: 220 }}>
-                <InputLabel>
-                    {ticket.status ? ticket.status : "Status"}
-                </InputLabel>
-
-                <Select
-                  value={selectedStatus || ""}
-                  label={ticket.status ? ticket.status : "Status"}
-                  onChange={(e) =>
-                    setSelectedStatus(e.target.value)
-                  }
-                >
-                  <MenuItem value="Open">
-                    Open
-                  </MenuItem>
-                  <MenuItem value="In Progress">
-                    In Progress
-                  </MenuItem>
-                  <MenuItem value="Resolved">
-                    Resolved
-                  </MenuItem>
-                  <MenuItem value="Closed">
-                    Closed
-                  </MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          )}
-          </Box>
-        </Stack>
-
-        <Divider sx={{ mb: 2 }} />
-
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 2,
-          }}
-        >
-            <Box>
-
-            {user?.role === "technician" && (
-              <Button
-                variant="contained"
-                onClick={() =>{
-                  handleUpdateStatus(ticket._id)
-                }
-                }
-              >
-                Update Status
-              </Button>
-            )}
-
-            
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  ))}
-</List>
+        <List>{ticketList}</List>
       </Paper>
     </Container>
   );

@@ -38,7 +38,7 @@ const SignIn = () => {
       setOpen(true);
       setSeverity('success');
       setMessage(response.message || 'Registration successful!');
-      navigate('/dashboard');
+      navigate('/login');
     } catch (error) {
       setOpen(true);
       setSeverity('error');

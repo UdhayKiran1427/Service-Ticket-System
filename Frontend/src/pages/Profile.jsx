@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient.js';
 import { useAuth } from '../auth/AuthProvider.jsx';
@@ -27,6 +27,7 @@ const Profile = () => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [severity, setSeverity] = useState('success');
+  const pageTitle = useMemo(() => (isEditing ? 'Edit Profile' : 'My Profile'), [isEditing]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -49,48 +50,51 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
+  const handleUpdateProfile = useCallback(
+    async (e) => {
+      e.preventDefault();
 
-    if (password && password !== confirmPassword) {
-      setMessage('Passwords do not match');
-      setSeverity('error');
-      setOpen(true);
-      return;
-    }
-
-    try {
-      const updateData = {
-        username,
-        email,
-      };
-
-      if (password) {
-        updateData.password = password;
+      if (password && password !== confirmPassword) {
+        setMessage('Passwords do not match');
+        setSeverity('error');
+        setOpen(true);
+        return;
       }
 
-      const response = await axiosClient.put('/profile/update', updateData);
+      try {
+        const updateData = {
+          username,
+          email,
+        };
 
-      if (response.data.success) {
-        setMessage(response.data.message || 'Profile updated successfully');
-        setSeverity('success');
-        setPassword('');
-        setConfirmPassword('');
-        setIsEditing(false);
+        if (password) {
+          updateData.password = password;
+        }
+
+        const response = await axiosClient.put('/profile/update', updateData);
+
+        if (response.data.success) {
+          setMessage(response.data.message || 'Profile updated successfully');
+          setSeverity('success');
+          setPassword('');
+          setConfirmPassword('');
+          setIsEditing(false);
+          setOpen(true);
+        }
+      } catch (error) {
+        setMessage(error.response?.data?.message || 'Failed to update profile');
+        setSeverity('error');
         setOpen(true);
       }
-    } catch (error) {
-      setMessage(error.response?.data?.message || 'Failed to update profile');
-      setSeverity('error');
-      setOpen(true);
-    }
-  };
+    },
+    [username, email, password, confirmPassword],
+  );
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setIsEditing(false);
     setPassword('');
     setConfirmPassword('');
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -101,7 +105,7 @@ const Profile = () => {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
         <Button variant="contained" onClick={() => navigate(-1)}>
           Back
@@ -110,7 +114,7 @@ const Profile = () => {
       <Card sx={{ p: 3 }}>
         <CardContent>
           <Typography component="h1" variant="h4" mb={3} fontWeight="bold">
-            My Profile
+            {pageTitle}
           </Typography>
 
           <Box component="form" onSubmit={handleUpdateProfile} sx={{ display: 'grid', gap: 2 }}>

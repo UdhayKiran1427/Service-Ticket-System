@@ -23,7 +23,7 @@ const Login = () => {
       if (user?.role === 'admin') {
         navigate('/dashboard', { replace: true });
       } else if (user?.role === 'technician') {
-        navigate('/technician-tickets', { replace: true });
+        navigate('/tickets', { replace: true });
       } else {
         navigate('/tickets', { replace: true });
       }
