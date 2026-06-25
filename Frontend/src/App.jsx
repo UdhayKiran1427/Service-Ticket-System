@@ -4,9 +4,11 @@ import Login from './pages/Login.jsx';
 import SignIn from './pages/SignIn.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import CreateTicket from './pages/CreateTicket.jsx';
+import CreateTechnician from './pages/CreateTechnician.jsx';
 import Profile from './pages/Profile.jsx';
 import NotFound from './pages/NotFound.jsx';
 import TicketsPages from './pages/TicketsPages.jsx';
+import Reports from './pages/Reports.jsx';
 import { ProtectedRoutes } from './auth/ProtectedRoutes.jsx';
 import { useAuth } from './auth/AuthProvider.jsx';
 import Navbar from "./pages/Navbar.jsx";
@@ -59,6 +61,22 @@ function App() {
         element={
           <ProtectedRoutes>
             <TicketsPages />
+          </ProtectedRoutes>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoutes allowedRoles={["admin"]}>
+            <Reports />
+          </ProtectedRoutes>
+        }
+      />
+      <Route
+        path="/create-technician"
+        element={
+          <ProtectedRoutes allowedRoles={["admin"]}>
+            <CreateTechnician />
           </ProtectedRoutes>
         }
       />

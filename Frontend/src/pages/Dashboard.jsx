@@ -16,36 +16,55 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [stats, setStats] = useState(null);
-  const [tickets, setTickets] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [severity, setSeverity] = useState('success');
+  const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
+  const handleDeleteTechnician = async (id) => {
+    if (!window.confirm("Delete this technician?")) return;
+    try {
+      await axiosClient.delete(`/dashboard/technicians/${id}`);
+      setTechnicians((prev) => prev.filter((tech) => tech._id !== id));
+      setSeverity('success');
+      setMessage('Technician deleted successfully');
+      setOpen(true);
+    } catch (err) {
+      setSeverity('error');
+      setMessage(err.response?.data?.message || 'Unable to delete technician');
+      setOpen(true);
+    }
+  };
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      if (isAdmin) {
+        const response = await axiosClient.get('/dashboard/stats');
+        const res = await axiosClient.get('/dashboard/techniciansData');
+        setTechnicians(res.data.totalTechnicians);
+        setStats(response.data);
+        setError('');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        if (isAdmin) {
-          const response = await axiosClient.get('/dashboard/stats');
-          const res = await axiosClient.get('/tickets/all-tickets');
-          setTickets(res.data.tickets);
-          setStats(response.data);
-          setError('');
-        } 
-      } catch (err) {
-        setError(err.response?.data?.message || 'Unable to load dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
-  }, [isAdmin]);
+  }, [isAdmin,technicians.length]);
+
   const statCards = [
     { label: 'Total Tickets', value: stats?.totalTickets ?? 0, color: 'primary' },
     { label: 'Open Tickets', value: stats?.openTickets ?? 0, color: 'warning' },
@@ -110,14 +129,14 @@ const Dashboard = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Box>
             <Typography variant="h6" fontWeight={700}>
-              Recent Tickets
+              Manage Technicians
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Snapshot of the latest ticket activity in your workspace.
-            </Typography>
+            {/* <Typography variant="body2" color="text.secondary">
+              Snapshot of the all technicians.
+            </Typography> */}
           </Box>
-          <Button variant="contained" onClick={() => navigate('/tickets')}>
-            Manage Tickets
+          <Button variant="contained" onClick={() => navigate('/create-technician')}>
+            Add Technician
           </Button>
         </Box>
 
@@ -132,54 +151,34 @@ const Dashboard = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Priority</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Lab</TableCell>
-                  <TableCell>Created At</TableCell>
+                  <TableCell>Technician Name</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {tickets?.slice(0, 6).map((ticket) => (
-                  <TableRow key={ticket._id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                    <TableCell sx={{ fontWeight: 600 }}>{ticket.title}</TableCell>
+                {technicians?.slice(0, 6).map((technician) => (
+                  <TableRow key={technician._id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                    <TableCell sx={{ fontWeight: 600 }}>{technician.username}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{technician.email}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={ticket.priority}
-                        color={
-                          ticket.priority === 'High'
-                            ? 'error'
-                            : ticket.priority === 'Medium'
-                            ? 'warning'
-                            : 'success'
-                        }
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={ticket.status}
-                        color={
-                          ticket.status === 'Closed' || ticket.status === 'Resolved' ? 'success' : 'info'
-                        }
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{ticket.Lab}</TableCell>
-                    <TableCell>
-                      {new Date(ticket.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
+                      <Button variant="contained" onClick={() => handleDeleteTechnician(technician._id)} >
+                        Delete
+                      </Button>
                     </TableCell>
                   </TableRow>
+              
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
         )}
       </Paper>
+      <Snackbar open={open} autoHideDuration={4000} onClose={() => setOpen(false)}>
+              <Alert severity={severity} variant="filled" sx={{ width: '100%' }}>
+                {message}
+              </Alert>
+            </Snackbar>
     </Container>
   );
 };

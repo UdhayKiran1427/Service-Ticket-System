@@ -13,6 +13,7 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
+import TextField from "@mui/material/TextField";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Stack from "@mui/material/Stack";
@@ -28,12 +29,17 @@ const TicketCard = memo(({
   technicians,
   selectedTechnician,
   selectedStatus,
+  reportComment,
+  onReportCommentChange,
+  onReport,
   onTechnicianChange,
   onAssign,
   onDelete,
   onUpdateStatus,
   onEdit,
   onStatusChange,
+  currentUserId,
+  onToggleStatus,
 }) => (
   <Card
     key={ticket._id}
@@ -89,6 +95,26 @@ const TicketCard = memo(({
             color="secondary"
           />
         )}
+        {isUser && ticket.assignedTo && ticket.status !== "Closed" && (
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "flex-end", mt: 1 }}>
+            <TextField
+              size="small"
+              label="Report technician"
+              value={reportComment}
+              onChange={(e) => onReportCommentChange(ticket._id, e.target.value)}
+              helperText="Add a comment for the admin"
+              multiline
+              sx={{ minWidth: 240 }}
+            />
+            <Button
+              variant="outlined"
+              disabled={!reportComment}
+              onClick={() => onReport(ticket._id)}
+            >
+              Report
+            </Button>
+          </Box>
+        )}
         <Box>
           {isTechnician && !ticket.assignedTo && (
             <Box sx={{ display: "flex", gap: 1 }}>
@@ -99,10 +125,8 @@ const TicketCard = memo(({
                   label="Status"
                   onChange={(e) => onStatusChange(ticket._id, e.target.value)}
                 >
-                  <MenuItem value="Open">Open</MenuItem>
                   <MenuItem value="In Progress">In Progress</MenuItem>
                   <MenuItem value="Resolved">Resolved</MenuItem>
-                  <MenuItem value="Closed">Closed</MenuItem>
                 </Select>
               </FormControl>
             </Box>
@@ -121,12 +145,12 @@ const TicketCard = memo(({
           gap: 2,
         }}
       >
-        {userRole === "admin" && !ticket.assignedTo && (
-          <Box sx={{ display: "flex", gap: 1 }}>
+        {userRole === "admin" && (
+          <Box sx={{ display: "flex", gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
             <FormControl size="small" sx={{ minWidth: 220 }}>
               <InputLabel>Technician</InputLabel>
               <Select
-                value={selectedTechnician || ""}
+                value={selectedTechnician || ticket.assignedTo || ""}
                 label="Technician"
                 onChange={(e) => onTechnicianChange(ticket._id, e.target.value)}
               >
@@ -144,10 +168,10 @@ const TicketCard = memo(({
 
             <Button
               variant="contained"
-              disabled={!selectedTechnician}
-              onClick={() => onAssign(ticket._id, selectedTechnician)}
+              disabled={!selectedTechnician && !ticket.assignedTo}
+              onClick={() => onAssign(ticket._id, selectedTechnician || ticket.assignedTo)}
             >
-              Assign
+              {ticket.assignedTo ? 'Reassign' : 'Assign'}
             </Button>
           </Box>
         )}
@@ -158,7 +182,7 @@ const TicketCard = memo(({
                 color="error"
                 variant="contained"
                 onClick={() =>
-                  handleDelete(ticket._id)
+                  onDelete(ticket._id)
                 }
               >
                 Delete
@@ -171,10 +195,24 @@ const TicketCard = memo(({
             </Button>
           )}
 
-          {isUser && (
-            <Button variant="outlined" onClick={() => onEdit(ticket)}>
-              Edit
-            </Button>
+          {isUser &&  ticket.status !== "Closed" && ticket.status !== "Resolved" && (
+            <>
+              <Button variant="outlined" onClick={() => onEdit(ticket)}>
+                Edit
+              </Button>
+              {ticket.createdBy && String(ticket.createdBy) === String(currentUserId) && (
+                ticket.status == 'Resolved' ? (
+                  <>
+                  <Button variant="contained" color="error" onClick={() => onToggleStatus(ticket._id, 'Closed')}>
+                    Close
+                  </Button>
+                  <Button variant="contained" color="primary" onClick={() => onToggleStatus(ticket._id, 'Open')}>
+                    Reopen
+                  </Button>
+                  </>
+                ) : ""
+              )}
+            </>
           )}
         </Box>
       </Box>
@@ -190,6 +228,8 @@ const TicketsPages = () => {
   const [assignedNames, setAssignedNames] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState({});
+  const [reportComment, setReportComment] = useState({});
+  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -232,7 +272,6 @@ const TicketsPages = () => {
         setError(err.response?.data?.message || "Unable to fetch technicians");
       }
     };
-
     fetchTickets();
     fetchTechnicians();
   }, [isAdmin, isTechnician]);
@@ -248,7 +287,7 @@ const TicketsPages = () => {
   }, [isAdmin]);
 
   const handleDelete = useCallback(async (id) => {
-    // if (!window.confirm("Delete this ticket?")) return;
+    if (!window.confirm("Delete this ticket?")) return;
     setOpen(true);
     try {
       await axiosClient.delete(`/tickets/delete/${id}`);
@@ -256,6 +295,33 @@ const TicketsPages = () => {
     } catch (err) {
       setError(err.response?.data?.message || "Unable to delete ticket");
     }
+  }, []);
+
+  const handleReport = useCallback(
+    async (ticketId) => {
+      const comment = reportComment[ticketId];
+      if (!comment) return;
+      try {
+        await axiosClient.post('/dashboard/reports', {
+          ticketId,
+          comment,
+        });
+        setSuccess('Report submitted successfully. Admin will review it.');
+        setError('');
+        setReportComment((prev) => ({ ...prev, [ticketId]: '' }));
+      } catch (err) {
+        setError(err.response?.data?.message || 'Unable to submit report');
+        setSuccess('');
+      }
+    },
+    [reportComment],
+  );
+
+  const handleReportCommentChange = useCallback((ticketId, value) => {
+    setReportComment((prev) => ({
+      ...prev,
+      [ticketId]: value,
+    }));
   }, []);
 
   const handleAssign = useCallback(
@@ -275,13 +341,13 @@ const TicketsPages = () => {
     const response = await axiosClient.get(`/dashboard/technicianName/${id}`);
     setAssignedNames((prev) => ({
       ...prev,
-      [id]: response.data.TechnicianData.username,
+      [id]: response?.data?.TechnicianData?.username,
     }));
   }, []);
 
   useEffect(() => {
     tickets.forEach((ticket) => {
-      if (ticket.assignedTo) {
+      if (ticket?.assignedTo) {
         handleAssignName(ticket.assignedTo);
       }
     });
@@ -300,6 +366,18 @@ const TicketsPages = () => {
       }
     },
     [refreshTickets, selectedStatus],
+  );
+
+  const handleToggleStatus = useCallback(
+    async (id, status) => {
+      try {
+        await axiosClient.put(`/tickets/status/${id}`, { status });
+        await refreshTickets();
+      } catch (err) {
+        setError(err.response?.data?.message || 'Unable to update status');
+      }
+    },
+    [refreshTickets],
   );
 
   const handleEdit = useCallback(
@@ -332,11 +410,10 @@ const TicketsPages = () => {
       [ticketId]: value,
     }));
   }, []);
-
   const ticketList = useMemo(
     () =>
       tickets.map((ticket) => (
-        <TicketCard
+          <TicketCard
           key={ticket._id}
           ticket={ticket}
           userRole={user?.role}
@@ -344,6 +421,9 @@ const TicketsPages = () => {
           isUser={isUser}
           assignedNames={assignedNames}
           technicians={technicians}
+          reportComment={reportComment[ticket._id] || ""}
+          onReportCommentChange={handleReportCommentChange}
+          onReport={handleReport}
           selectedTechnician={selectedTechnician[ticket._id] || ""}
           selectedStatus={selectedStatus[ticket._id] || ""}
           onTechnicianChange={handleTechnicianChange}
@@ -351,8 +431,11 @@ const TicketsPages = () => {
           onDelete={handleDelete}
           onUpdateStatus={handleUpdateStatus}
           onEdit={handleEdit}
+          currentUserId={user?.id}
+          onToggleStatus={handleToggleStatus}
           onStatusChange={handleStatusChange}
         />
+      
       )),
     [
       tickets,
@@ -363,6 +446,7 @@ const TicketsPages = () => {
       technicians,
       selectedTechnician,
       selectedStatus,
+      reportComment,
       handleTechnicianChange,
       handleAssign,
       handleDelete,
@@ -384,9 +468,10 @@ const TicketsPages = () => {
           {pageTitle}
         </Typography>
         {loading && <Typography>Loading tickets…</Typography>}
+        {success && <Typography color="success.main">{success}</Typography>}
         {error && <Typography color="error">{error}</Typography>}
         {!loading && !tickets.length && (
-          <Typography>No tickets found.</Typography>
+          <Typography>No tickets found Or Open.</Typography>
         )}
         <List>{ticketList}</List>
       </Paper>

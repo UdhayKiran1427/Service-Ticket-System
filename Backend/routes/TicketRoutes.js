@@ -27,8 +27,9 @@ router.put('/assign/:id', requireAdmin, [
     body('assignedTo').notEmpty().withMessage('Assigned To is required')
 ], assignTicket);
 
-router.put('/status/:id', requireTechnician, [
-    body('status').isIn(['Resolved', 'In Progress', 'Closed']).withMessage('Invalid status')
+// Allow authenticated users to change status so creators can Close/Reopen their tickets.
+router.put('/status/:id', authMiddleware, [
+    body('status').isIn(['Open', 'In Progress', 'Resolved', 'Closed']).withMessage('Invalid status')
 ], updateStatus);
 
 router.get('/my-tickets', authMiddleware, getTicketsByCreator);

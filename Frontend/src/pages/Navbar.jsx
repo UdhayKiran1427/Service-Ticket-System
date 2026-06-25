@@ -42,6 +42,7 @@ function Navbar() {
   const adminPages = [
     { label: 'Dashboard', to: '/dashboard' },
     { label: 'Tickets', to: '/tickets' },
+    { label: 'Reports', to: '/reports' },
     { label: 'Profile', to: '/profile' },
   ];
 

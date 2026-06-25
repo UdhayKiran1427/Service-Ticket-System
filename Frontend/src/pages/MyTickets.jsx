@@ -22,8 +22,8 @@ const MyTickets = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const[assignedNames, setAssignedNames] = useState({});
+  const [selectedStatus, setSelectedStatus] = useState({});
+  const [assignedNames, setAssignedNames] = useState({});
   const [error, setError] = useState("");
   const navigate = useNavigate();
   
@@ -76,17 +76,35 @@ const MyTickets = () => {
 
   const handleUpdateStatus = useCallback(
     async (id) => {
-      if (!selectedStatus) return;
+      const status = selectedStatus[id];
+      if (!status) return;
       try {
-        await axiosClient.put(`/tickets/status/${id}`, { status: selectedStatus });
+        await axiosClient.put(`/tickets/status/${id}`, { status });
         await refreshTickets();
-        setSelectedStatus("");
+        setSelectedStatus((prev) => ({ ...prev, [id]: "" }));
         setError("");
       } catch (err) {
         setError(err.response?.data?.message || "Unable to update status");
       }
     },
     [refreshTickets, selectedStatus],
+  );
+
+  const handleStatusChange = useCallback((ticketId, value) => {
+    setSelectedStatus((prev) => ({ ...prev, [ticketId]: value }));
+  }, []);
+
+  const handleToggleStatus = useCallback(
+    async (id, status) => {
+      try {
+        await axiosClient.put(`/tickets/status/${id}`, { status });
+        await refreshTickets();
+        setError("");
+      } catch (err) {
+        setError(err.response?.data?.message || "Unable to update status");
+      }
+    },
+    [refreshTickets],
   );
 
   const ticketList = useMemo(
@@ -142,14 +160,12 @@ const MyTickets = () => {
                     <FormControl size="small" sx={{ minWidth: 220 }}>
                       <InputLabel>{ticket.status ? ticket.status : "Status"}</InputLabel>
                       <Select
-                        value={selectedStatus || ""}
+                        value={selectedStatus[ticket._id] || ""}
                         label={ticket.status ? ticket.status : "Status"}
-                        onChange={(e) => setSelectedStatus(e.target.value)}
+                        onChange={(e) => handleStatusChange(ticket._id, e.target.value)}
                       >
-                        <MenuItem value="Open">Open</MenuItem>
                         <MenuItem value="In Progress">In Progress</MenuItem>
                         <MenuItem value="Resolved">Resolved</MenuItem>
-                        <MenuItem value="Closed">Closed</MenuItem>
                       </Select>
                     </FormControl>
                   </Box>
@@ -168,10 +184,28 @@ const MyTickets = () => {
                 gap: 2,
               }}
             >
-              <Box>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 {user?.role === "technician" && (
                   <Button variant="contained" onClick={() => handleUpdateStatus(ticket._id)}>
                     Update Status
+                  </Button>
+                )}
+                {ticket.createdBy && String(ticket.createdBy) === String(user?._id) && ticket.status !== 'Closed' && (
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => handleToggleStatus(ticket._id, 'Closed')}
+                  >
+                    Close
+                  </Button>
+                )}
+                {ticket.createdBy && String(ticket.createdBy) === String(user?._id) && ticket.status === 'Closed' && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => handleToggleStatus(ticket._id, 'Open')}
+                  >
+                    Reopen
                   </Button>
                 )}
               </Box>

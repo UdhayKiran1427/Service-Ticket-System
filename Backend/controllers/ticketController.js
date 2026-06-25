@@ -187,15 +187,53 @@ export const updateStatus = async (req, res) => {
                 message: 'Ticket not found'
             });
         }
-        const updatedTicket = await Ticket.findByIdAndUpdate(id, {
-            status: status,
-            assignedTo: req.user._id
-        });
+        // Only allow the ticket creator to Close or Reopen their own ticket
+        // Technicians can update to In Progress / Resolved only if assigned
+        // Admins can update any status
+        const requesterId = req.user._id.toString();
+        const isAdmin = req.user.role === 'admin';
+        const isTechnician = req.user.role === 'technician';
+
+        if (['Closed', 'Open'].includes(status)) {
+            // Close / Reopen must be done by creator or admin
+            if (!isAdmin && existTicket.createdBy.toString() !== requesterId) {
+                return res.status(403).json({ sucess: false, message: 'Not authorized to change this ticket status' });
+            }
+        } else {
+            // Other status changes (In Progress, Resolved, Assigned) require technician assigned or admin
+            if (!isAdmin) {
+                if (!isTechnician) {
+                    return res.status(403).json({ sucess: false, message: 'Not authorized to change this ticket status' });
+                }
+                if (existTicket.assignedTo && existTicket.assignedTo.toString() !== requesterId) {
+                    return res.status(403).json({ sucess: false, message: 'Only assigned technician can update this status' });
+                }
+            }
+        }
+        if(isTechnician && !existTicket.assignedTo) {
+        const updatedTicket = await Ticket.findByIdAndUpdate(
+            id,
+            { status: status, assignedTo: requesterId },
+            { new: true }
+        );
         res.status(201).json({
             sucess: true,
             message: 'Ticket status updated successfully',
             ticket: updatedTicket
         });
+    }else{
+        const updatedTicket = await Ticket.findByIdAndUpdate(
+            id,
+            { status: status},
+            { new: true }
+        );
+        res.status(201).json({
+            sucess: true,
+            message: 'Ticket status updated successfully',
+            ticket: updatedTicket
+        });
+
+    }
         
     } catch (error) {
         res.status(500).json({
